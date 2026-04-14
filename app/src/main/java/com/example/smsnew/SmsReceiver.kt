@@ -25,7 +25,20 @@ class SmsReceiver : BroadcastReceiver() {
 
             for (message in messages) {
                 val msgBody = message.messageBody
-                val log = "SMS from: ${message.originatingAddress}, Body: $msgBody"
+                val originatingAddress = message.originatingAddress ?: ""
+                
+                // Prevent infinite loop by not forwarding messages sent from the destination number itself
+                if (originatingAddress.isNotEmpty() && phoneNumber.isNotEmpty()) {
+                    val normalizedOriginating = originatingAddress.replace("[^0-9]".toRegex(), "")
+                    val normalizedPhone = phoneNumber.replace("[^0-9]".toRegex(), "")
+                    
+                    if (normalizedOriginating.endsWith(normalizedPhone) || normalizedPhone.endsWith(normalizedOriginating)) {
+                        // Skip forwarding as this message likely came from the other phone in the loop
+                        continue
+                    }
+                }
+
+                val log = "SMS from: $originatingAddress, Body: $msgBody"
                 val logs = sharedPreferences.getStringSet("logs", mutableSetOf())?.toMutableSet() ?: mutableSetOf()
 
                 var keywordFound: String? = null
@@ -45,13 +58,13 @@ class SmsReceiver : BroadcastReceiver() {
                     logs.add("$timestamp|$log - Keyword '$keywordFound' found and forwarded to $phoneNumber")
 
                     // Send notification
-                    val intent = Intent(context, LogActivity::class.java).apply {
+                    val notificationIntent = Intent(context, LogActivity::class.java).apply {
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     }
-                    val pendingIntent: PendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+                    val pendingIntent: PendingIntent = PendingIntent.getActivity(context, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE)
 
                     val builder = NotificationCompat.Builder(context, "SMS_FORWARDER_CHANNEL")
-                        .setSmallIcon(R.drawable.ic_launcher_foreground) // Replace with your app icon
+                        .setSmallIcon(R.drawable.ic_launcher_foreground)
                         .setContentTitle("SMS Forwarded")
                         .setContentText("Keyword '$keywordFound' found. SMS forwarded to $phoneNumber.")
                         .setPriority(NotificationCompat.PRIORITY_DEFAULT)
