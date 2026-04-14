@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -31,6 +33,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -136,11 +139,16 @@ fun LogItem(timestamp: Long, message: String) {
         SimpleDateFormat("MMM dd, HH:mm:ss", Locale.getDefault()).format(Date(timestamp))
     } else ""
 
+    val isForwarded = message.contains("forwarded to", ignoreCase = true)
+    val statusColor = if (isForwarded) Color(0xFF2E7D32) else Color(0xFFC62828) // Dark green and Dark red
+    val statusIcon = if (isForwarded) Icons.Default.CheckCircle else Icons.Default.Error
+
     ListItem(
         headlineContent = {
             Text(
                 text = message,
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
+                color = statusColor
             )
         },
         overlineContent = if (date.isNotEmpty()) {
@@ -148,11 +156,19 @@ fun LogItem(timestamp: Long, message: String) {
                 Text(
                     text = date,
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = statusColor.copy(alpha = 0.7f),
                     fontWeight = FontWeight.Bold
                 )
             }
-        } else null
+        } else null,
+        leadingContent = {
+            Icon(
+                imageVector = statusIcon,
+                contentDescription = null,
+                tint = statusColor,
+                modifier = Modifier.size(24.dp)
+            )
+        }
     )
 }
 
