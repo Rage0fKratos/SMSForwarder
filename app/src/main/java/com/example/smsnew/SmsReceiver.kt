@@ -53,8 +53,12 @@ class SmsReceiver : BroadcastReceiver() {
                         val normalizedOriginating = originatingAddress.replace("[^0-9]".toRegex(), "")
                         val normalizedPhone = phoneNumber.replace("[^0-9]".toRegex(), "")
                         
-                        if (normalizedOriginating.endsWith(normalizedPhone) || normalizedPhone.endsWith(normalizedOriginating)) {
-                            shouldSkip = true
+                        // Fix: Only perform end-comparison if we actually have numbers in the sender ID
+                        // This prevents alphabetic sender IDs (like AD-ICICIO-T) from triggering a skip
+                        if (normalizedOriginating.isNotEmpty() && normalizedPhone.isNotEmpty()) {
+                            if (normalizedOriginating.endsWith(normalizedPhone) || normalizedPhone.endsWith(normalizedOriginating)) {
+                                shouldSkip = true
+                            }
                         }
                     }
 
